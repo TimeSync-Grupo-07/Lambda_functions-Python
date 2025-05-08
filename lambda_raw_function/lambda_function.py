@@ -28,40 +28,32 @@ def lambda_handler(event, context):
     
     print(f"Evento recebido: {event}")
 
-    # Processar cada arquivo no evento
-    for record in event.get('Records', []):
-        source_bucket = record['s3']['bucket']['name']
-        object_key = record['s3']['object']['key']
+    object_key = "base01.csv"
 
-        print(f"Processando arquivo: {object_key} do bucket {source_bucket}")
+    print(f"Processando arquivo: {object_key} do bucket {source_bucket}")
 
-        try:
-            # Baixar CSV do bucket RAW
-            response = s3.get_object(Bucket=source_bucket, Key=object_key)
-            csv_content = response['Body'].read().decode('utf-8')
+    try:
+        # Baixar CSV do bucket RAW
+        response = s3.get_object(Bucket=bucket_raw, Key=object_key)
+        csv_content = response['Body'].read().decode('utf-8')
+        # Ler CSV no pandas
+        df = pd.read_csv(StringIO(csv_content))
+        # Formatar o CSV
+        df_formatado = formatar_csv(df)
+        # Salvar em memória como CSV
+        csv_buffer = StringIO()
+        df_formatado.to_csv(csv_buffer, index=False)
+        # Enviar para o bucket TRUSTED
+        s3.put_object(
+            Bucket=bucket_trusted,
+            Key=object_key,
+            Body=csv_buffer.getvalue()
+        )
+        print(f"Arquivo '{object_key}' formatado e enviado para o bucket Trusted!")
 
-            # Ler CSV no pandas
-            df = pd.read_csv(StringIO(csv_content))
-
-            # Formatar o CSV
-            df_formatado = formatar_csv(df)
-
-            # Salvar em memória como CSV
-            csv_buffer = StringIO()
-            df_formatado.to_csv(csv_buffer, index=False)
-
-            # Enviar para o bucket TRUSTED
-            s3.put_object(
-                Bucket=bucket_trusted,
-                Key=object_key,
-                Body=csv_buffer.getvalue()
-            )
-
-            print(f"Arquivo '{object_key}' formatado e enviado para o bucket Trusted!")
-
-        except Exception as e:
-            print(f"Erro ao processar o arquivo {object_key}: {str(e)}")
-            raise e
+    except Exception as e:
+        print(f"Erro ao processar o arquivo {object_key}: {str(e)}")
+        raise e
 
     return {
         'statusCode': 200,
