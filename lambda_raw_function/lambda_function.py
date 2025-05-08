@@ -28,7 +28,7 @@ def lambda_handler(event, context):
     
     print(f"Evento recebido: {event}")
 
-    object_key = event['file_key']
+    object_key = "base01.csv"
 
     print(f"Processando arquivo: {object_key} do bucket {source_bucket}")
 
