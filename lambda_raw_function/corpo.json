@@ -1,0 +1,21 @@
+{
+ "id": "ID"
+,
+ "nome": "Nome"
+,
+ "email": "Email"
+,
+ "detalhes": "Detalhamento"
+,
+ "nome_responsavel": "Responsável → Name"
+,
+ "email_responsavel": "Responsável → Email"
+,
+ "opiniao": "Como você se sente com nosso atendimento?"
+,
+ "sugestao": "Como acredita que possamos melhorar?"
+,
+ "data_hora_abertura": "DataHora"
+,
+  "data_hora_fechamento": "DataHora fechamento"
+}
