@@ -6,7 +6,7 @@ import io
 
 # config AWS
 INPUT_KEY = "arquivoRaw.csv"
-OUTPUT_KEY = "step2.xlsx"
+OUTPUT_KEY = "arquivoLimpo.xlsx"
 
 s3_client = boto3.client("s3")
 
