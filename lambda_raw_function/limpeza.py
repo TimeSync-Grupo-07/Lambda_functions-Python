@@ -51,22 +51,22 @@ colunas_mapeadas = {
 df = df.rename(columns=colunas_mapeadas)
 
 # padroniando dados
-# for col in df.select_dtypes(include="object").columns:
-#     if col.startswith("data_") or col.startswith("hora_") or col.startswith("id_"):
-#         continue
-#     df[col] = df[col].apply(padronizar_texto)
+for col in df.select_dtypes(include="object").columns:
+    if col.startswith("data_") or col.startswith("hora_") or col.startswith("id_"):
+        continue
+    df[col] = df[col].apply(padronizar_texto)
 
 # # dt
-# for col in [c for c in df.columns if "data" in c]:
-#     df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
+for col in [c for c in df.columns if "data" in c]:
+    df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
 
 # # hr
-# for col in [c for c in df.columns if "hora" in c]:
-#     df[col] = pd.to_datetime(df[col], format="%H:%M:%S", errors="coerce").dt.strftime("%H:%M:%S")
+for col in [c for c in df.columns if "hora" in c]:
+    df[col] = pd.to_datetime(df[col], format="%H:%M:%S", errors="coerce").dt.strftime("%H:%M:%S")
 
 # # numero
-# for col in [c for c in df.columns if "matricula" in c]:
-#     df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("Int64")
+for col in [c for c in df.columns if "matricula" in c]:
+    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype("Int64")
 
 # tratamento de NULL
 for campo_obrigatorio in ["data_apontamento", "ocorrencia_apontamento", "email_usuario","id_projeto","hora_inicio","hora_saida","inativo","horas_totais","motivo"]:
