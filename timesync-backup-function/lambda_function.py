@@ -8,11 +8,16 @@ def lambda_handler(event, context):
         source_bucket = record['s3']['bucket']['name']
         source_key = record['s3']['object']['key']
 
-        if not source_key.endswith('.csv'):
+        # Alterado para filtrar JSON em vez de CSV
+        if not source_key.endswith('.json'):
             print(f"Arquivo ignorado: {source_key}")
             continue
 
-        destination_bucket = "timesync-backup-841051091018312111099"
+        # Usando as variáveis de ambiente definidas no Terraform
+        destination_bucket = os.environ['BACKUP_BUCKET']
+        raw_bucket = os.environ['RAW_BUCKET']
+
+        # Mantém a mesma estrutura de chave no bucket de backup
         destination_key = source_key
 
         try:
@@ -27,8 +32,9 @@ def lambda_handler(event, context):
                 CopySource=copy_source
             )
 
-            print(f"Arquivo copiado: {source_key} -> {destination_bucket}/{destination_key}")
+            print(f"Arquivo JSON copiado: {source_key} -> {destination_bucket}/{destination_key}")
 
         except Exception as e:
             print(f"Erro ao copiar arquivo {source_key}: {str(e)}")
             raise e
+        
