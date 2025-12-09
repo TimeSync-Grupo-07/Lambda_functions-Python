@@ -8,7 +8,6 @@ def lambda_handler(event, context):
     for record in event["Records"]:
         source_bucket = record["s3"]["bucket"]["name"]
         source_key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
-
         # Processa apenas arquivos JSON
         if not source_key.lower().endswith(".json"):
             print(f"Ignorado (não é JSON): {source_key}")
@@ -27,7 +26,9 @@ def lambda_handler(event, context):
                 Key=source_key,
                 CopySource=copy_source
             )
+            
             print(f"Copiado para RAW: {source_key} -> s3://{raw_bucket}/{source_key}")
+
         except Exception as e:
             print(f"Erro ao copiar para RAW: {e}")
             raise e
@@ -43,3 +44,4 @@ def lambda_handler(event, context):
         except Exception as e:
             print(f"Erro ao copiar para BACKUP: {e}")
             raise e
+        
