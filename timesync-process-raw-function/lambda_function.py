@@ -1,56 +1,40 @@
-import os
-import mysql.connector
-import pandas as pd
 import boto3
-import io
+import os
+
+s3 = boto3.client("s3")
 
 def lambda_handler(event, context):
-    """
-    Esta função é executada quando um arquivo é salvo no bucket TRUSTED.
-    Ela extrai os dados, realiza análises e salva no MySQL.
-    """
+    for record in event["Records"]:
+        source_bucket = record["s3"]["bucket"]["name"]
+        source_key = record["s3"]["object"]["key"]
 
-    trusted_bucket = os.environ.get('TRUSTED_BUCKET')
+        # Apenas arquivos JSON
+        if not source_key.endswith(".json"):
+            print(f"Arquivo ignorado (não é JSON): {source_key}")
+            continue
 
-    db_config = {
-        'host': os.environ.get('MYSQL_HOST'),
-        'user': os.environ.get('MYSQL_USER'),
-        'password': os.environ.get('MYSQL_PASSWORD'),
-        'database': os.environ.get('MYSQL_DB')
-    }
+        # Buckets definidos no Terraform
+        raw_bucket = os.environ["RAW_BUCKET"]
+        trusted_bucket = os.environ["TRUSTED_BUCKET"]
 
-    s3 = boto3.client('s3')
+        # O destino manterá o mesmo path/nome
+        destination_key = source_key
 
-    print(f"Evento recebido: {event}")
-
-    for record in event.get('Records', []):
-        object_key = record['s3']['object']['key']
-        bucket_name = record['s3']['bucket']['name']
-
-        response = s3.get_object(Bucket=bucket_name, Key=object_key)
-        df = pd.read_csv(io.BytesIO(response['Body'].read()))
-
-        print(f"Arquivo lido com sucesso. Linhas: {len(df)}")
-
-        # TODO: Lógica para enviar ao MySQL
         try:
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
+            copy_source = {
+                "Bucket": source_bucket,
+                "Key": source_key
+            }
 
-            for _, row in df.iterrows():
-                # Exemplo: ajuste para seu schema real
-                cursor.execute("INSERT INTO tabela (coluna1, coluna2) VALUES (%s, %s)", (row['coluna1'], row['coluna2']))
+            s3.copy_object(
+                Bucket=trusted_bucket,
+                Key=destination_key,
+                CopySource=copy_source
+            )
 
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            print("Dados inseridos com sucesso no banco MySQL.")
+            print(f"[OK] JSON movido do RAW para TRUSTED:")
+            print(f"     {source_bucket}/{source_key} -> {trusted_bucket}/{destination_key}")
 
         except Exception as e:
-            print(f"Erro ao conectar/inserir no MySQL: {e}")
-
-    return {
-        'statusCode': 200,
-        'body': 'Processamento do bucket TRUSTED concluído com sucesso.'
-    }
+            print(f"[ERRO] Falha ao mover {source_key} para TRUSTED: {str(e)}")
+            raise e

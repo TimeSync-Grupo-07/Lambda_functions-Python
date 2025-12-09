@@ -1,40 +1,47 @@
 import boto3
 import os
+import urllib.parse
 
-s3_client = boto3.client('s3')
+s3 = boto3.client("s3")
 
 def lambda_handler(event, context):
-    for record in event['Records']:
-        source_bucket = record['s3']['bucket']['name']
-        source_key = record['s3']['object']['key']
-
-        # Alterado para filtrar JSON em vez de CSV
-        if not source_key.endswith('.json'):
-            print(f"Arquivo ignorado: {source_key}")
+    for record in event["Records"]:
+        source_bucket = record["s3"]["bucket"]["name"]
+        source_key = urllib.parse.unquote_plus(record["s3"]["object"]["key"])
+        # Processa apenas arquivos JSON
+        if not source_key.lower().endswith(".json"):
+            print(f"Ignorado (não é JSON): {source_key}")
             continue
 
-        # Usando as variáveis de ambiente definidas no Terraform
-        destination_bucket = os.environ['BACKUP_BUCKET']
-        raw_bucket = os.environ['RAW_BUCKET']
+        # Buckets definidos por variáveis de ambiente
+        backup_bucket = os.environ["BACKUP_BUCKET"]
+        raw_bucket = os.environ["RAW_BUCKET"]
 
-        # Mantém a mesma estrutura de chave no bucket de backup
-        destination_key = source_key
+        copy_source = {"Bucket": source_bucket, "Key": source_key}
 
+        # Copiar para RAW
         try:
-            copy_source = {
-                'Bucket': source_bucket,
-                'Key': source_key
-            }
-
-            s3_client.copy_object(
-                Bucket=destination_bucket,
-                Key=destination_key,
+            s3.copy_object(
+                Bucket=raw_bucket,
+                Key=source_key,
                 CopySource=copy_source
             )
-
-            print(f"Arquivo JSON copiado: {source_key} -> {destination_bucket}/{destination_key}")
+            
+            print(f"Copiado para RAW: {source_key} -> s3://{raw_bucket}/{source_key}")
 
         except Exception as e:
-            print(f"Erro ao copiar arquivo {source_key}: {str(e)}")
+            print(f"Erro ao copiar para RAW: {e}")
+            raise e
+
+        # Copiar para BACKUP
+        try:
+            s3.copy_object(
+                Bucket=backup_bucket,
+                Key=source_key,
+                CopySource=copy_source
+            )
+            print(f"Copiado para BACKUP: {source_key} -> s3://{backup_bucket}/{source_key}")
+        except Exception as e:
+            print(f"Erro ao copiar para BACKUP: {e}")
             raise e
         
